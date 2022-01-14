@@ -8,26 +8,31 @@
 import UIKit
 
 class HomeTableViewController: UITableViewController {
+    var apiManager: APIManager?
     var users: [User] = []{
         didSet {
             tableView.reloadData()
         }
     }
     
+    func setupApiManager(){
+        apiManager = APIManager()
+    }
     override func viewDidLoad() {
         super.viewDidLoad()
-        fetch { resultCompletion in
-            switch resultCompletion{
-            case .failure(let error):
-                print(error.localizedDescription)
+        setupApiManager()
+        
+        let url = URL(string: "https://jsonplaceholder.typicode.com/users")
+        apiManager?.fetchItems(url: url!, completion: { (resultCompletion: Result<[User],Error>) in
+            switch resultCompletion {
             case .success(let users):
                 DispatchQueue.main.async {
                     self.users = users
                 }
-                
+            case .failure(let failure):
+                print(failure.localizedDescription)
             }
-        }
-        // Do any additional setup after loading the view.
+        })
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -46,25 +51,6 @@ class HomeTableViewController: UITableViewController {
         cell.contentConfiguration = content
         
         return cell
-    }
-    
-    func fetch(completion: @escaping (Result<[User],Error>) -> Void){
-        let url = URL(string: "https://jsonplaceholder.typicode.com/users")
-        
-        URLSession.shared.dataTask(with: url!) { (data, response, error) in
-            if let error = error {
-                completion(.failure(error))
-            }
-            
-            if let data = data {
-                do {
-                    let users = try JSONDecoder().decode([User].self, from: data)
-                    completion(.success(users))
-                } catch let decoderError {
-                    completion(.failure(decoderError))
-                }
-            }
-        }.resume()
     }
 }
 
